@@ -65,18 +65,6 @@ def update_or_create_account(response):
         db.session.commit()
         return True
 
-## Broken
-# def addAllUsers():
-#     responses = getSessionJson()
-#     printJsonResponce(responses)
-#     for response in responses:
-#         user = db.session.query(User).filter_by(username=response['User']['Name'].lower()).first()
-#         ## If the user cannot be found in the database, add it
-#         if(not user):
-#             newuser = User(emby_id=response['User']['Id'], username=response['User']['Name'].lower(), access_key=response['AccessToken'], device_id=response['SessionInfo']['DeviceId'])
-#             db.session.add(newuser)
-#             db.session.commit()
-
 def end_session():
     for z in current_user.sessions:
         set_dead(z.session_id)
@@ -99,53 +87,6 @@ def end_session():
     else:
         print(response.text, flush=True)
         return False
-
-def getUserJson():
-    url = '{0}/Users'.format(app.config['EMBY_SERVER'])
-    headers = {
-        'accept': 'applicaton/json',
-        'X-Emby-Token': app.config['SECRET_KEY'],
-        'X-Emby-Device-Id': 'session-sync',
-        'X-Emby-Device-Name': 'Emby Sync',
-        'X-Emby-Client': platform.system()
-    }
-    response = requests.get(url, headers=headers)
-    response_json = response.json()
-
-    return response_json
-
-def getSessionJson():
-    url = '{0}/Sessions'.format(app.config['EMBY_SERVER'])
-    headers = {
-        'accept': 'applicaton/json',
-        'X-Emby-Token': app.config['SECRET_KEY'],
-        'X-Emby-Device-Id': 'session-sync',
-        'X-Emby-Device-Name': 'Emby Sync',
-        'X-Emby-Client': platform.system()
-    }
-    response = requests.get(url, headers=headers)
-    response_json = response.json()
-
-    return response_json
-
-def getSessionList():
-    sessions = getSessionJson()
-    embySessionList = []
-    for session in sessions:
-        try:
-            emby_session = db.session.query(Session).filter_by(session_id=session['Id']).first()
-            
-            ## Checking if the emby_session isn't None
-            if(emby_session):
-                embySessionList.append(emby_session)
-
-        except KeyError:
-            continue
-    
-    return embySessionList
-
-def printJsonResponce(responce):
-    print(json.dumps(responce,indent=3))
 
 def update_or_create_sessions():
     ## Just for the Emby Sync user aka the bot
@@ -301,14 +242,6 @@ def session_cleanup():
     Session.query.filter(Session.is_dead==True).delete()
     db.session.commit()
 
-def sendRoomCommand(room, active_room_sessions, command):
-    print(f'Issuing command: {command} for room: {room.roomname}')
-    newlastTimeUpdatedAt = room.lastTimeUpdatedAt
-    for session in active_room_sessions:
-        sendCommand(session.session_id,command)
-        session.lastTimeUpdatedAt = newlastTimeUpdatedAt
-    db.session.commit()
-
 def updateRoom(room, active_room_sessions) -> bool:
     # print(f'Updating information for room: {room.roomname}')
     if(len(active_room_sessions) == 0):
@@ -459,10 +392,6 @@ def sync_cycle():
     end = time.time()
     # print(f'Round trip: {end - start}')
     
-def check_sync(session_ticks, room_ticks):
-    drift = (session_ticks/10000000) - (room_ticks/10000000)
-    return drift
-
 def sync(room_ticks, room_item, sessionId):
     target = room_ticks + int(INTERVAL*10000000) # Load x seconds ahead to give user time to buffer
     setPlaytime(sessionId, target, room_item)
@@ -509,114 +438,6 @@ def syncTicks(room_ticks, room_lastTimeUpdatedAt, sessionId):
                 print('Session is now synced with server')
                 break
     
-def issuePause(sessionId):
-    sendCommand(sessionId,'Pause')
-
-    while(True):
-        with app.app_context():
-            session = db.session.query(Session).filter_by(session_id=sessionId).first()
-            if(session.is_paused == True):
-                session.syncing = True
-                db.session.commit()
-                break
-
-def issueResume(sessionId):
-    sendCommand(sessionId,'Unpause')
-
-    while(True):
-        with app.app_context():
-            session = db.session.query(Session).filter_by(session_id=sessionId).first()
-            if(session.is_paused == False):
-                session.syncing = True
-                db.session.commit()
-                break
-
-def setTickPosition(sessionId, ticks):
-    url = '{0}/Sessions/{1}/Playing/Seek'.format(app.config['EMBY_SERVER'], sessionId)
-    headers = {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Emby-Client': platform.system(),
-        'X-Emby-Client-Version': '0.1',
-        'X-Emby-Device-Id': 'session-sync',
-        'X-Emby-Device-Name': 'Emby Sync',
-        'X-Emby-Token': app.config['SECRET_KEY']
-    }
-    params = {
-        'SeekPositionTicks': ticks
-    }
-    response = requests.post(url, headers=headers, params=params)
-    if response.status_code == 204:
-        return 0
-    else:
-        print(response.text, flush=True)
-        print(response.status_code, flush=True)
-
-def setPlaytime(sessionId, ticks, item_id):
-    url = '{0}/Sessions/{1}/Playing'.format(app.config['EMBY_SERVER'], sessionId)
-    headers = {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Emby-Client': platform.system(),
-        'X-Emby-Client-Version': '0.1',
-        'X-Emby-Device-Id': 'session-sync',
-        'X-Emby-Device-Name': 'Emby Sync',
-        'X-Emby-Token': app.config['SECRET_KEY']
-    }
-    params = {
-        'ItemIds': item_id,
-        'StartPositionTicks': ticks
-    }
-    response = requests.post(url, headers=headers, params=params)
-    if response.status_code == 204:
-        return 0
-    else:
-        print(response.text, flush=True)
-        print(response.status_code, flush=True)
-
-def sendCommand(sessionId, command):
-    url = '{0}/Sessions/{1}/Playing/{2}'.format(app.config['EMBY_SERVER'], sessionId, command)
-
-    headers = {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Emby-Client': platform.system(),
-        'X-Emby-Client-Version': '0.1',
-        'X-Emby-Device-Id': 'session-sync',
-        'X-Emby-Device-Name': 'Emby Sync',
-        'X-Emby-Token': app.config['SECRET_KEY']
-    }
-
-    response = requests.post(url, headers=headers)
-    if response.status_code == 204:
-        return 0
-    else:
-        print(response.text, flush=True)
-        print(response.status_code, flush=True)
-
-def sendMessage(sessionId, message = 'Click "Got It" to Watch Together'):
-    url = '{0}/Sessions/{1}/Message'.format(app.config['EMBY_SERVER'], sessionId)
-        
-    headers = {
-        'accept': 'application/json',
-        'Content-Type': 'application/json',
-        'X-Emby-Client': platform.system(),
-        'X-Emby-Client-Version': '0.1',
-        'X-Emby-Device-Id': 'session-sync',
-        'X-Emby-Device-Name': 'Emby Sync',
-        'X-Emby-Token': app.config['SECRET_KEY']
-    }
-    params = {
-        'Text': message,
-        'Header': '&emsp;&emsp;Emby - Party&emsp;&emsp;'
-    }
-    response = requests.post(url, headers=headers,params=params)
-    if response.status_code == 204:
-        return 0
-    else:
-        print(response.text, flush=True)
-        print(response.status_code, flush=True)
-
 def get_room_leader(room):
     leader_session = db.session.query(Session).filter_by(room=room, leader=True).first()
     if leader_session and leader_session.device_name != 'Emby Connect':
