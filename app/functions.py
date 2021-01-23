@@ -14,6 +14,8 @@ from app.models import Session
 from app.models import User
 from app.models import Room
 from flask_login import current_user
+from app.helper import *
+from app.commands import *
 
 ## TODO
 ## Add ability to join back in session after left it they join the same video

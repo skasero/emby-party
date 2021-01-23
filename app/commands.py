@@ -1,3 +1,21 @@
+import app
+import datetime
+import random
+import platform
+import requests
+import json
+import string
+import threading
+import time
+from app import INTERVAL, app
+from app import db
+from app import functions
+from app.models import Session
+from app.models import User
+from app.models import Room
+from flask_login import current_user
+
+
 def sendRoomCommand(room, active_room_sessions, command):
     print(f'Issuing command: {command} for room: {room.roomname}')
     newlastTimeUpdatedAt = room.lastTimeUpdatedAt
