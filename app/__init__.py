@@ -25,6 +25,7 @@ INTERVAL = .05
 ## This need to be placed here
 from app.functions import *
 
+db.create_all()
 initRun()
 logging.getLogger().setLevel(logging.ERROR)
 app.apscheduler.add_job(func=sync_cycle, trigger='interval', seconds=INTERVAL, id='sync_cycle')

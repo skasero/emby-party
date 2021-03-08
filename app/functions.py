@@ -122,11 +122,6 @@ def update_or_create_sessions():
                             emby_session.is_paused == z['PlayState']['IsPaused']):
                             pass
                         else:
-                            emby_session.playing = True
-                            emby_session.item_id = z['NowPlayingItem']['Id']
-                            emby_session.ticks = z['PlayState']['PositionTicks']
-                            emby_session.is_paused = z['PlayState']['IsPaused']
-                            emby_session.lastTimeUpdatedAt = newlastTimeUpdatedAt
                             if(emby_session.room_id):
                                 room = db.session.query(Room).filter_by(id=emby_session.room_id).first()
                                 if(room.playing == False):
@@ -136,6 +131,15 @@ def update_or_create_sessions():
                                     room.ticks = z['PlayState']['PositionTicks']
                                     room.is_paused = z['PlayState']['IsPaused']
                                     room.lastTimeUpdatedAt = newlastTimeUpdatedAt
+                                    # emby_session.initial = False
+                                    # db.session.commit()
+
+                            emby_session.playing = True
+                            emby_session.item_id = z['NowPlayingItem']['Id']
+                            emby_session.ticks = z['PlayState']['PositionTicks']
+                            emby_session.is_paused = z['PlayState']['IsPaused']
+                            # if(emby_session.initial == False):
+                            emby_session.lastTimeUpdatedAt = newlastTimeUpdatedAt
                     else:
                         ## Do nothing as nothing has changed in the user
                         if(emby_session.playing == False and 
@@ -148,6 +152,7 @@ def update_or_create_sessions():
                             emby_session.item_id = None
                             emby_session.ticks = None
                             emby_session.is_paused = z['PlayState']['IsPaused']
+                            # if(emby_session.initial == False):
                             emby_session.lastTimeUpdatedAt = newlastTimeUpdatedAt
                 else:
                     print('happened')
@@ -204,7 +209,8 @@ def set_room(room_name, emby_session_id):
     emby_session.room_id = room.id
     emby_session.syncing = True
     emby_session.loading = False
-    # emby_session.lastTimeUpdatedAt = datetime.datetime.now()
+    emby_session.initial = True
+    emby_session.lastTimeUpdatedAt = datetime.datetime.min ## Oldest date possible
     db.session.commit()
     
     ## For when a new person joins that isn't the bot
@@ -352,6 +358,7 @@ def sync_cycle():
                     session.lastTimeUpdatedAt = newlastTimeUpdatedAt
                     session.syncing = False
                     session.is_paused = True
+                    session.initial = False
                     db.session.commit()
                     # sendCommand(session.session_id,'Pause')
                     sendRoomCommand(room,sessions,'Pause')
@@ -387,6 +394,7 @@ def sync_cycle():
                         session.syncing = False
                         session.is_paused = True
                         session.loading = True
+                        session.initial = False
                         db.session.commit()
                         sendCommand(session.session_id,'Pause')
                         app.apscheduler.add_job(func=syncTicks, trigger='date', args=[room.ticks,room.lastTimeUpdatedAt,session.session_id], id="Sync "+session.session_id)     

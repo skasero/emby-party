@@ -30,6 +30,7 @@ class Session(db.Model):
     room = db.Column(db.String(128))
     syncing = db.Column(db.Boolean, default=False)
     loading = db.Column(db.Boolean, default=False)
+    initial = db.Column(db.Boolean, default=False)
     leader = db.Column(db.Boolean, default=False)
     item_id = db.Column(db.Integer, default=None) ## Maybe change to str to match json
     device_name = db.Column(db.String(128))
