@@ -69,6 +69,7 @@ def setTickPosition(sessionId, ticks):
 
 def setPlaytime(sessionId, ticks, item_id):
     url = '{0}/Sessions/{1}/Playing'.format(app.config['EMBY_SERVER'], sessionId)
+    print(url)
     headers = {
         'accept': 'application/json',
         'Content-Type': 'application/json',

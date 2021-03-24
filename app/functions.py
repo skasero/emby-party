@@ -252,10 +252,12 @@ def session_cleanup():
 
 def updateRoom(room, active_room_sessions) -> bool:
     # print(f'Updating information for room: {room.roomname}')
-    if(len(active_room_sessions) == 0):
-        # print(f'{room.roomname} is empty')
-        emptyRoom(room)
-        return False
+
+    ## Commented as I have to deal with a situation where the room is empty, but maybe the user hasn't had syncing set to true
+    # if(len(active_room_sessions) == 0):
+    #     # print(f'{room.roomname} is empty')
+    #     emptyRoom(room)
+    #     return False
 
     newlastTimeUpdatedAt = datetime.datetime.now()
     checkForAnyUserPlaying = False
@@ -343,6 +345,11 @@ def sync_cycle():
         ## This means that the room is completely empty, skip it
         if(updateRoom(room,sessions) == 0):
             continue
+        print(f'Room is_paused: {room.is_paused}')
+        print(f'Room ticks: {room.ticks}')
+        print(f'Room item_id: {room.item_id}')
+        print(f'Room playing: {room.playing}')
+        print(f'Room lastTimeUpdatedAt: {room.lastTimeUpdatedAt}')
 
         newlastTimeUpdatedAt = datetime.datetime.now()
         for session in sessions:
@@ -411,6 +418,7 @@ def sync(room_ticks, room_item, sessionId):
         sendCommand(sessionId, "Pause")
         with app.app_context():
             session = db.session.query(Session).filter_by(session_id=sessionId).first()
+            print('test')
             if(session.ticks != None and (session.ticks >= target or session.ticks == 0) and (session.is_paused == True and session.item_id == room_item)):
                 session.syncing = True
                 print('Session is now synced with server')
