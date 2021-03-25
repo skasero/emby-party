@@ -215,7 +215,8 @@ def set_room(room_name, emby_session_id):
     
     ## For when a new person joins that isn't the bot
     if(emby_session.device_id != 'session-sync'):
-        # sendCommand(emby_session.session_id, "Message")
+        print('h3333333333333333333333333333333i')
+        sendMessage(emby_session.session_id)
         pass
 
     return True
@@ -416,6 +417,7 @@ def sync(room_ticks, room_item, sessionId):
     ## This is a do-while loop
     while(True):
         sendCommand(sessionId, "Pause")
+        setPlaytime(sessionId, target, room_item)
         with app.app_context():
             session = db.session.query(Session).filter_by(session_id=sessionId).first()
             print('test')
