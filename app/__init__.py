@@ -20,7 +20,7 @@ migrate = Migrate(app, db)
 login = LoginManager(app)
 login.login_view = 'login'
 bootstrap = Bootstrap(app)
-INTERVAL = 3
+INTERVAL = 1
 
 ## This need to be placed here
 from app.functions import *

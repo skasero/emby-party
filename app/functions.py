@@ -215,7 +215,6 @@ def set_room(room_name, emby_session_id):
     
     ## For when a new person joins that isn't the bot
     if(emby_session.device_id != 'session-sync'):
-        print('h3333333333333333333333333333333i')
         sendMessage(emby_session.session_id)
         pass
 
@@ -400,8 +399,7 @@ def sync_cycle():
                         room.lastTimeUpdatedAt = newlastTimeUpdatedAt
                         session.lastTimeUpdatedAt = newlastTimeUpdatedAt
                         session.syncing = False
-                        session.is_paused = True
-                        session.loading = True
+                        # session.loading = True
                         session.initial = False
                         db.session.commit()
                         sendCommand(session.session_id,'Pause')
@@ -417,7 +415,7 @@ def sync(room_ticks, room_item, sessionId):
     ## This is a do-while loop
     while(True):
         sendCommand(sessionId, "Pause")
-        setPlaytime(sessionId, target, room_item)
+        # setPlaytime(sessionId, target, room_item)
         with app.app_context():
             session = db.session.query(Session).filter_by(session_id=sessionId).first()
             print('test')
@@ -432,26 +430,26 @@ def syncTicks(room_ticks, room_lastTimeUpdatedAt, sessionId):
     setTickPosition(sessionId, target)
     targetLower = target - 20000 # I used 20000 ticks as this value is equal to .002 of a second. 
     targetUpper = target + 20000 # I used 20000 ticks as this value is equal to .002 of a second. 
-    
-    with app.app_context():
-        session = db.session.query(Session).filter_by(session_id=sessionId).first()
-        session.loading = False
-        db.session.commit()
-    # time.sleep(INTERVAL/2)
+    print('-------sync ticks')
+    # with app.app_context():
+    #     session = db.session.query(Session).filter_by(session_id=sessionId).first()
+    #     session.loading = False
+    #     db.session.commit()
 
     ## This is a do-while loop
     while(True):
         with app.app_context():
             session = db.session.query(Session).filter_by(session_id=sessionId).first()
-            # if(session.ticks != None):
-            #     print('ticks are not none')
-            # if(session.ticks >= targetLower and session.ticks <= targetUpper):
-            #     print('ticks are target')
-            # if session.ticks == 0:
-            #     print('ticks are 0')
-            # if(session.lastTimeUpdatedAt > room_lastTimeUpdatedAt):
-            #     print('session is updated more than room')
-
+            if(session.ticks != None):
+                print('ticks are not none')
+            if(session.ticks >= targetLower and session.ticks <= targetUpper):
+                print('ticks are target')
+            if session.ticks == 0:
+                print('ticks are 0')
+            if(session.lastTimeUpdatedAt > room_lastTimeUpdatedAt):
+                print('session is updated more than room')
+            time.sleep(.1)
+            # print("still running")
             if(session.ticks != None and ((session.ticks >= targetLower and session.ticks <= targetUpper) or session.ticks == 0) and session.lastTimeUpdatedAt > room_lastTimeUpdatedAt):
                 session.syncing = True
                 db.session.commit()
